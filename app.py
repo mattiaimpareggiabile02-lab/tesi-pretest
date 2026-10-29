@@ -214,7 +214,7 @@ elif st.session_state.fase == 2:
         tutte_compilate_2 = True
 
         st.markdown("### Sezione 4")
-        st.info("**Indica il tuo grado di accordo rispetto alle seguenti affermazioni pensando alla tua esperienza quotidiana.**\n\n(1 = Fortemente in disaccordo 👎, 7 = Fortemente in accordo 👍)")
+        st.info("**Indica il tuo grado di accordo con le seguenti affermazioni pensando alla tua esperienza quotidiana.**\n\n(1 = Fortemente in disaccordo 👎, 7 = Fortemente in accordo 👍)")
         domande_b4 = [
             "Mi sento disconnesso/a dal mondo intorno a me", "Anche quando sono con persone che conosco, non provo un senso di appartenenza", 
             "Mi sento molto distante dalle persone", "Non provo senso di appartenenza rispetto al mio gruppo di pari", 
@@ -327,7 +327,7 @@ elif st.session_state.fase == 4:
     st.title("Interazione con IA")
     st.write(f"**Promemoria Obiettivo:** {st.session_state.condizione_scenario_macro}")
     
-    # Pannello laterale (Sidebar) per avvisi opzionali e timer in tempo reale
+    # Pannello laterale (Sidebar) per opzioni e timer non bloccanti
     with st.sidebar:
         st.header("Opzioni Interazione")
         
@@ -349,9 +349,6 @@ elif st.session_state.fase == 4:
                         st.rerun()
                 else:
                     st.write("💬 Conversazione attiva.")
-                    # Aggiornamento fluido in background ogni secondo per il timer laterale
-                    time.sleep(1)
-                    st.rerun()
             else:
                 st.write("Scrivi liberamente nella chat.")
 
@@ -361,7 +358,7 @@ elif st.session_state.fase == 4:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
     
-    # Campo di input principale: sempre libero e attivo
+    # Campo di input principale: sempre libero e attivo, nessuna interruzione
     if prompt_utente := st.chat_input("Scrivi il tuo messaggio qui..."):
         if (time.time() - st.session_state.inizio_chat) > 240:
             st.warning("Tempo scaduto. Procedi al questionario.")
@@ -384,7 +381,7 @@ elif st.session_state.fase == 4:
             
             st.session_state.messaggi.append({"role": "assistant", "content": risposta_ia})
             
-            # IL TIMER DI 40 SECONDI RIPARTE DA ZERO: ogni volta che l'IA risponde, si azzera
+            # AZZERAMENTO DEL TIMER: ogni volta che l'IA risponde, il timer riparte da zero
             st.session_state.timestamp_ultima_risposta = time.time()
             
             with st.chat_message("assistant"):
