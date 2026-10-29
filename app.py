@@ -231,7 +231,7 @@ elif st.session_state.fase == 2:
     i tuoi pensieri e ciò che proveresti se ti trovassi in questo preciso momento in questa condizione.*
     """)
     
-    st.info(f"**Situaizone immaginata:**\n\n{st.session_state.condizione_scenario_testo}")
+    st.info(f"**Situazione immaginata:**\n\n{st.session_state.condizione_scenario_testo}")
     
     st.warning("⚠️ **Avviso di sicurezza:** l'interazione avviene con un sistema di intelligenza artificiale. Non inserire dati personali reali, password o informazioni sensibili.")
     
@@ -370,7 +370,7 @@ elif st.session_state.fase == 4:
 # ==========================================
 # FASE 5: SCHERMATA FINALE DI RINGRAZIAMENTO
 # ==========================================
-elif st.session_state.fase = 5:
+elif st.session_state.fase == 5:
     st.balloons()
     st.success("🎉 La tua partecipazione è stata registrata con successo!")
     st.title("Grazie per il tuo prezioso contributo!")
