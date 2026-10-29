@@ -1,5 +1,6 @@
 import streamlit as st
 import random
+import time
 import os
 import gspread
 from openai import OpenAI
@@ -9,14 +10,11 @@ from openai import OpenAI
 # ==========================================
 st.set_page_config(page_title="Studio sull'interazione uomo-IA", layout="centered")
 
-# Stile CSS personalizzato per colorare di azzurro le barre di progresso, i bottoni e gli elementi interattivi
 st.markdown("""
 <style>
-    /* Colore azzurro per le barre di progresso */
     .stProgress > div > div > div > div {
         background-color: #0077b6;
     }
-    /* Colore azzurro per i bottoni principali */
     .stButton > button {
         background-color: #0077b6;
         color: white;
@@ -33,12 +31,10 @@ st.markdown("""
 MAX_TURNI = 5 
 
 SCENARI = {
-    "Supporto Emotivo": [
-        "Pensa ad un evento che ti è accaduto di recente, che ti ha causato un vissuto di forte stress, tensione o nervosismo. Vorresti sfogarti ma senti che nessuno capisce davvero il tuo vissuto, così decidi di rivolgerti ad un sistema di intelligenza artificiale per cercare conforto e sentirti compreso/a.",
-        "Immagina di sentirti molto solo/a. Vorresti chiacchierare con un amico/a, ma non c’è nessuno che tu possa contattare nell’immediato, così decidi di rivolgerti ad un sistema di intelligenza artificiale per avere compagnia e alleviare il tuo senso di solitudine.",
-        "Immagina di essere a casa dopo una lunga giornata in cui ti sono successe diverse cose e hai avuto diversi pensieri che continui a portarti dietro. Non è accaduto necessariamente qualcosa di grave, ma ti senti sotto pressione e hai bisogno di trovare un momento per te stesso/a e rimettere in ordine i pensieri. Vuoi parlare con qualcuno per raccontare cosa ti passa per la testa, che ti possa capire e magari farti sfogare un po’. Hai bisogno di esprimerti liberamente, sentendoti ascoltato/a e a tuo agio. Per questo decidi di interagire con un sistema di intelligenza artificiale."
+    "Supporto emotivo": [
+        "Immagina di essere a casa dopo una lunga giornata in cui ti è successo qualcosa che ti ha causato un forte vissuto emotivo (ad esempio, stress, tensione, nervosismo). Non è accaduto necessariamente qualcosa di grave, ma ti senti sotto pressione e vuoi parlarne con qualcuno che ti possa capire e magari farti sfogare un po’. Ti senti solo/a e hai bisogno di esprimerti liberamente, sentendoti ascoltato/a e a tuo agio, così decidi di interagire con un sistema di intelligenza artificiale."
     ],
-    "Supporto Pragmatico": [
+    "Supporto pragmatico": [
         "Immagina di stare studiando per un esame o svolgendo un’attività (ad esempio, quotidiana o lavorativa) per te importante. Una circostanza imprevista ti rende necessario acquisire alcune informazioni fondamentali per portare a termine il compito, così decidi di chiederle ad un sistema di intelligenza artificiale."
     ],
     "Intrattenimento": [
@@ -48,8 +44,8 @@ SCENARI = {
 
 PROMPT_IA = {
     "Asettica": "Sei un sistema informatico di elaborazione dati. Rispondi in modo estremamente conciso, fattuale, freddo e robotico. Non usare mai pronomi personali (né 'io' né 'tu'). Non mostrare emozioni. Fornisci solo dati.",
-    "Basso Antropomorfismo": "Sei un assistente virtuale utile ed educato. Usa un linguaggio formale e professionale. Ricorda che sei un'IA. Sii collaborativo ma mantieni un tono distaccato, neutro e di servizio.",
-    "Alto Antropomorfismo": "Sei un compagno di conversazione umano, caldo ed empatico. Dai del 'tu' all'utente. Mostra sincero interesse, usa espressioni colloquiali (es. 'Mhm', 'Capisco'), usa emoji e fai domande per approfondire il legame emotivo."
+    "Basso antropomorfismo": "Sei un assistente virtuale utile ed educato. Usa un linguaggio formale e professionale. Ricorda che sei un'IA. Sii collaborativo ma mantieni un tono distaccato, neutro e di servizio.",
+    "Alto antropomorfismo": "Sei un compagno di conversazione umano, caldo ed empatico. Dai del 'tu' all'utente. Mostra sincero interesse, usa espressioni colloquiali (es. 'Mhm', 'Capisco'), usa emoji e fai domande per approfondire il legame emotivo."
 }
 
 if 'fase' not in st.session_state:
@@ -68,6 +64,10 @@ if 'messaggi' not in st.session_state:
     st.session_state.messaggi = []
 if 'turni_utente' not in st.session_state:
     st.session_state.turni_utente = 0
+if 'inizio_chat' not in st.session_state:
+    st.session_state.inizio_chat = None
+if 'timestamp_ultima_risposta' not in st.session_state:
+    st.session_state.timestamp_ultima_risposta = None
 
 # ==========================================
 # FASE 1: INFORMAZIONI E DEMOGRAFICA
@@ -99,21 +99,32 @@ if st.session_state.fase == 1:
     
     eta = st.number_input("Età", min_value=18, max_value=99, step=1)
     genere = st.selectbox("Genere", ["Seleziona", "Uomo", "Donna", "Non binario", "Preferisco non specificare"])
-    titolo_studio = st.selectbox("Titolo di Studio", ["Seleziona", "Licenza media", "Diploma", "Laurea Triennale", "Laurea Magistrale/Master", "Dottorato"])
-    occupazione = st.selectbox("Condizione Occupazionale", ["Seleziona", "Studente", "Lavoratore dipendente", "Libero professionista", "In cerca di occupazione", "Altro"])
-    stato_civile = st.selectbox("Stato Civile", ["Seleziona", "Celibe/Nubile", "Coniugato/a", "Convivente", "Separato/a", "Divorziato/a", "Vedovo/a"])
+    titolo_studio = st.selectbox("Titolo di studio", ["Seleziona", "Licenza media", "Diploma", "Laurea Triennale", "Laurea Magistrale/Master", "Dottorato"])
+    
+    occupazione = st.selectbox("Condizione occupazionale", ["Seleziona", "Dirigente", "Libero professionista (freelancer)", "Studente/essa", "Disoccupato/a", "Lavoratore/trice dipendente", "Pensionato/a", "Imprenditore/trice", "Altro"])
+    
+    occupazione_altro = ""
+    if occupazione == "Altro":
+        occupazione_altro = st.text_input("Specifica la professione")
+
+    stato_civile = st.selectbox("Stato civile", ["Seleziona", "Celibe/nubile", "In una coppia non convivente e non sposata", "Convivente/coniugato-a", "Separato/a, divorziato/a", "Vedovo/a"])
+    
     frequenza_ia = st.selectbox("Con che frequenza usi strumenti di IA generativa (es. ChatGPT)?", 
                                 ["Seleziona", "Mai usati", "Raramente", "Occasionalmente", "Spesso", "Quotidianamente"])
     
-    if st.button("Vai al Questionario"):
+    if st.button("Vai al questionario"):
+        occupazione_valida = occupazione != "Seleziona" and (occupazione != "Altro" or occupazione_altro.strip() != "")
+        
         if not consenso:
             st.error("Attenzione: devi fornire il consenso sulla privacy (spuntando la casella in alto) per poter partecipare allo studio.")
-        elif genere != "Seleziona" and titolo_studio != "Seleziona" and occupazione != "Seleziona" and stato_civile != "Seleziona" and frequenza_ia != "Seleziona":
+        elif genere != "Seleziona" and titolo_studio != "Seleziona" and occupazione_valida and stato_civile != "Seleziona" and frequenza_ia != "Seleziona":
+            occupazione_finale = f"Altro: {occupazione_altro.strip()}" if occupazione == "Altro" else occupazione
+            
             st.session_state.dati_utente.update({
                 "Eta": eta, 
                 "Genere": genere, 
                 "Titolo_Studio": titolo_studio, 
-                "Occupazione": occupazione, 
+                "Occupazione": occupazione_finale, 
                 "Stato_Civile": stato_civile,
                 "Frequenza_IA": frequenza_ia
             })
@@ -132,9 +143,8 @@ if st.session_state.fase == 1:
 # FASE 2: QUESTIONARIO PRE-SPERIMENTAZIONE (Paginato)
 # ==========================================
 elif st.session_state.fase == 2:
-    st.title("Questionario Iniziale")
+    st.title("Questionario iniziale")
     
-    # === SOTTO-FASE 1 ===
     if st.session_state.sub_fase_pre == 1:
         st.progress(0.33)
         st.success("🚀 **Iniziamo!** Prima tappa del tuo percorso. Rispondi d'istinto.")
@@ -166,7 +176,7 @@ elif st.session_state.fase == 2:
             "Se le altre persone non sembrano accettarmi, non lascio che questo mi disturbi.", "Mi impegno per non fare cose che porteranno le altre persone a rifiutarmi o evitarmi.", 
             "Di rado mi domando se le altre persone si prendono cura di me.", "Ho bisogno di sentire che ci sono persone a cui posso rivolgermi in situazioni di necessità.", 
             "Voglio che le altre persone mi accettino.", "Non mi piace essere solo/a.", 
-            "Essere separato dai miei amici per lunghi periodi di tempo non mi infastidisce.", "Ho un forte “bisogno di appartenere”.", 
+            "Essere separato dai miei amici per lunghi periodi di tempo non mi infastidisce.", "Ho un forte bisogno di appartenere.", 
             "Mi infastidisce molto non essere incluso/a nei programmi delle altre persone.", "I miei sentimenti vengono facilmente feriti quando sento che gli altri non mi accettano."
         ]
         for i, q in enumerate(domande_b2):
@@ -198,7 +208,6 @@ elif st.session_state.fase == 2:
                 st.session_state.sub_fase_pre = 2
                 st.rerun()
 
-    # === SOTTO-FASE 2 ===
     elif st.session_state.sub_fase_pre == 2:
         st.progress(0.66)
         st.success("💪 **Ottimo lavoro!** Sei già a metà strada.")
@@ -242,7 +251,6 @@ elif st.session_state.fase == 2:
                 st.session_state.sub_fase_pre = 3
                 st.rerun()
 
-    # === SOTTO-FASE 3 ===
     elif st.session_state.sub_fase_pre == 3:
         st.progress(1.0)
         st.success("🎉 **Ci siamo quasi!** Ultima sezione prima di conoscere la tua intelligenza artificiale.")
@@ -282,7 +290,7 @@ elif st.session_state.fase == 2:
             if r is None: tutte_compilate_3 = False
         st.markdown("---")
 
-        if st.button("Procedi allo Scenario 🎯"):
+        if st.button("Procedi allo scenario 🎯"):
             if not tutte_compilate_3:
                 st.error("Per favore, rispondi a tutte le domande prima di procedere.")
             else:
@@ -294,7 +302,7 @@ elif st.session_state.fase == 2:
 # FASE 3: PRESENTAZIONE SCENARIO
 # ==========================================
 elif st.session_state.fase == 3:
-    st.title("Il tuo Scenario")
+    st.title("Il tuo scenario")
     
     st.markdown("""
     *Prenditi qualche secondo per immaginare la situazione qui descritta, come se ti stesse accadendo ora. 
@@ -309,6 +317,8 @@ elif st.session_state.fase == 3:
     st.write("**Concentrati sulla situazione immaginata per 30 secondi, poi, quando sei pronto/a, premi qui per iniziare l’interazione con il sistema di intelligenza artificiale.**")
     
     if st.button("Inizia l'interazione"):
+        st.session_state.inizio_chat = time.time()
+        st.session_state.timestamp_ultima_risposta = time.time()
         st.session_state.fase = 4
         st.rerun()
 
@@ -317,50 +327,69 @@ elif st.session_state.fase == 3:
 # ==========================================
 elif st.session_state.fase == 4:
     st.title("Interazione con IA")
+    st.write(f"**Promemoria obiettivo:** {st.session_state.condizione_scenario_macro}")
     
-    st.write(f"**Promemoria Obiettivo:** {st.session_state.condizione_scenario_macro}")
-    
-    for msg in st.session_state.messaggi:
-        if msg["role"] != "system":
-            with st.chat_message(msg["role"]):
-                st.markdown(msg["content"])
-    
-    if st.session_state.turni_utente < MAX_TURNI:
-        if prompt_utente := st.chat_input("Scrivi il tuo messaggio qui..."):
-            st.session_state.messaggi.append({"role": "user", "content": prompt_utente})
-            st.session_state.turni_utente += 1
-            
-            with st.chat_message("user"):
-                st.markdown(prompt_utente)
-            
-            try:
-                client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-                
-                response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=st.session_state.messaggi
-                )
-                risposta_ia = response.choices[0].message.content
-                
-            except Exception as e:
-                risposta_ia = f"[Errore di connessione all'IA: {e}]"
-            
-            st.session_state.messaggi.append({"role": "assistant", "content": risposta_ia})
-            with st.chat_message("assistant"):
-                st.markdown(risposta_ia)
-            
-            st.rerun()
-    else:
-        st.warning("Hai raggiunto il numero di scambi previsto per l'esperimento. Procedi al questionario finale.")
-        if st.button("Vai al Questionario"):
+    # Controllo timer globale di 4 minuti (240 secondi)
+    tempo_trascorso = time.time() - st.session_state.inizio_chat
+    if tempo_trascorso > 240:
+        st.warning("⏱️ Hai raggiunto il tempo massimo previsto per questa fase (4 minuti).")
+        if st.button("Prosegui con il questionario finale"):
             st.session_state.fase = 5
             st.rerun()
+    else:
+        for msg in st.session_state.messaggi:
+            if msg["role"] != "system":
+                with st.chat_message(msg["role"]):
+                    st.markdown(msg["content"])
+        
+        # Gestione del timer di 40 secondi dall'ultima risposta dell'IA (mostrato come vignetta esterna)
+        if st.session_state.turni_utente >= 1 and st.session_state.timestamp_ultima_risposta is not None:
+            tempo_da_ultima = time.time() - st.session_state.timestamp_ultima_risposta
+            if tempo_da_ultima >= 40:
+                st.info("💡 **Vignetta / Avviso:** Non sai più cosa dire? Puoi concludere l'interazione in qualsiasi momento.")
+                if st.button("Concludi l'interazione e passa al questionario"):
+                    st.session_state.fase = 5
+                    st.rerun()
+        
+        if st.session_state.turni_utente < MAX_TURNI:
+            if prompt_utente := st.chat_input("Scrivi il tuo messaggio qui..."):
+                if (time.time() - st.session_state.inizio_chat) > 240:
+                    st.rerun()
+                else:
+                    st.session_state.messaggi.append({"role": "user", "content": prompt_utente})
+                    st.session_state.turni_utente += 1
+                    
+                    with st.chat_message("user"):
+                        st.markdown(prompt_utente)
+                    
+                    try:
+                        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                        response = client.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=st.session_state.messaggi
+                        )
+                        risposta_ia = response.choices[0].message.content
+                    except Exception as e:
+                        risposta_ia = f"[Errore di connessione all'IA: {e}]"
+                    
+                    st.session_state.messaggi.append({"role": "assistant", "content": risposta_ia})
+                    st.session_state.timestamp_ultima_risposta = time.time()
+                    
+                    with st.chat_message("assistant"):
+                        st.markdown(risposta_ia)
+                    
+                    st.rerun()
+        else:
+            st.warning("Hai raggiunto il numero di scambi previsto per l'esperimento. Procedi al questionario finale.")
+            if st.button("Vai al questionario"):
+                st.session_state.fase = 5
+                st.rerun()
 
 # ==========================================
 # FASE 5: QUESTIONARIO POST-INTERAZIONE
 # ==========================================
 elif st.session_state.fase == 5:
-    st.title("Questionario Finale")
+    st.title("Questionario finale")
     
     st.markdown("""
     *Di seguito, ti proponiamo un questionario inerente l’esperienza di interazione con l’intelligenza artificiale che hai appena vissuto. 
@@ -372,7 +401,6 @@ elif st.session_state.fase == 5:
     risposte_post = []
     tutte_post_compilate = True
     
-    # --- SEZIONE 1: Ruolo Percepito ---
     st.markdown("### Sezione 1")
     st.info("**Pensando al sistema di intelligenza artificiale con cui hai appena interagito, con che probabilità lo utilizzeresti come…**\n\n(1 = Per niente probabile, 5 = Del tutto probabile)")
     domande_post_s1 = [
@@ -385,7 +413,6 @@ elif st.session_state.fase == 5:
         if r is None: tutte_post_compilate = False
     st.markdown("---")
 
-    # --- SEZIONE 2: Responsiveness / Ascolto ed Empatia ---
     st.markdown("### Sezione 2")
     st.info("**Pensando al sistema di intelligenza artificiale con cui hai appena interagito, valuta quanto…**\n\n(1 = Per niente, 5 = Del tutto)")
     domande_post_s2 = [
@@ -410,7 +437,6 @@ elif st.session_state.fase == 5:
         if r is None: tutte_post_compilate = False
     st.markdown("---")
 
-    # --- SEZIONE 3: Tratti / Caratteristiche ---
     st.markdown("### Sezione 3")
     st.info("**Per favore, valuta il sistema di intelligenza artificiale rispetto alle seguenti caratteristiche:**\n\n(1 = Per niente appropriato, 7 = Del tutto appropriato)")
     tratti_post = [
@@ -425,7 +451,6 @@ elif st.session_state.fase == 5:
         if r is None: tutte_post_compilate = False
     st.markdown("---")
 
-    # --- SEZIONE 4: Antropomorfismo & Esperienza Post ---
     st.markdown("### Sezione 4")
     st.info("**Indica il tuo grado di accordo rispetto alle seguenti affermazioni pensando allo strumento di intelligenza artificiale con cui hai appena interagito:**\n\n(1 = Fortemente in disaccordo, 5 = Fortemente d'accordo)")
     domande_post_s4 = [
@@ -453,7 +478,6 @@ elif st.session_state.fase == 5:
         if r is None: tutte_post_compilate = False
     st.markdown("---")
 
-    # --- SEZIONE 5: Rischio, Benevolenza e Fiducia ---
     st.markdown("### Sezione 5")
     st.info("**Indica il tuo grado di accordo rispetto alle seguenti affermazioni pensando allo strumento di intelligenza artificiale con cui hai appena interagito:**\n\n(1 = Fortemente in disaccordo, 5 = Fortemente d'accordo)")
     domande_post_s5 = [
@@ -477,7 +501,7 @@ elif st.session_state.fase == 5:
         if r is None: tutte_post_compilate = False
     st.markdown("---")
 
-    if st.button("Invia Risposte e Concludi"):
+    if st.button("Invia risposte e concludi"):
         if not tutte_post_compilate:
             st.error("Per favore, rispondi a tutte le domande del questionario finale prima di inviare.")
         else:
