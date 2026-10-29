@@ -418,4 +418,4 @@ elif st.session_state.fase == 5:
     I tuoi dati sono stati salvati in forma **totalmente anonima** e saranno fondamentali per la nostra indagine sperimentale presso il Dipartimento di Scienze Sociali dell'Università degli Studi di Napoli Federico II.
     
     Puoi chiudere questa finestra del browser in qualsiasi momento.
-    """
+    """)
