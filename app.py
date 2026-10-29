@@ -159,9 +159,9 @@ if st.session_state.fase == 1:
     I dati raccolti saranno trattati in modo aggregato nel rispetto della normativa che garantisce il diritto alla privacy e il trattamento dei dati personali (Reg.(UE), 27 aprile 2016, n. 2016/679) ed utilizzati esclusivamente per scopi di ricerca.
     La ricerca è condotta nel rispetto del Codice Etico dell'Associazione Italiana di Psicologia, del Codice Deontologico dell'Ordine Nazionale degli Psicologi e della Dichiarazione di Helsinki.
 
-    L'invio del modulo compilato costituisce consenso a partecipare alla ricerca. Puoi comunque decidere di ritirarti in qualsiasi momento dalla ricerca e comunicarlo inviando un'email all'indirizzo stefania.zinno@unina.it
+    L'invio del modulo compilato costituisce consenso a partecipare alla ricerca. Puoi comunque decidere di ritirarti in qualsiasi momento dalla ricerca e comunicarlo inviando un'email all'indirizzo stefania.zinno@\u200bunina.it
 
-    Per qualsiasi domanda o chiarimento, puoi rivolgerti alla prof.ssa Stefania Zinno, inviando un'email all'indirizzo stefania.zinno@unina.it
+    Per qualsiasi domanda o chiarimento, puoi rivolgerti alla prof.ssa Stefania Zinno, inviando un'email all'indirizzo stefania.zinno@\u200bunina.it
 
     Grazie per la tua collaborazione!
     """)
@@ -385,6 +385,40 @@ elif st.session_state.fase == 4:
     post_ruolo = st.radio(
         "Se dovessi definire l'IA con cui hai interagito oggi, a cosa la assomiglieresti di più?",
         ["A uno strumento/calcolatore puramente tecnico", "A un assistente/consulente formale", "A un amico/confidente o compagno di supporto"]
+    )
+    
+    if st.button("Invia le risposte e completa lo studio"):
+        st.session_state.dati_post = {
+            "post_antropomorfismo_1": post_antrop_1,
+            "post_antropomorfismo_2": post_antrop_2,
+            "post_antropomorfismo_3": post_antrop_3,
+            "post_calore_1": post_calore_1,
+            "post_calore_2": post_calore_2,
+            "post_competenza_1": post_comp_1,
+            "post_competenza_2": post_comp_2,
+            "post_presenza_sociale_1": post_pres_1,
+            "post_presenza_sociale_2": post_pres_2,
+            "post_fiducia_1": post_fiducia_1,
+            "post_rischio_percepito_1": post_rischio_1,
+            "post_ruolo_percepito": post_ruolo
+        }
+        
+        salva_dati_completi()
+        st.rerun()
+
+# ==========================================
+# FASE 5: SCHERMATA FINALE DI RINGRAZIAMENTO
+# ==========================================
+elif st.session_state.fase == 5:
+    st.balloons()
+    st.success("🎉 La tua partecipazione è stata registrata con successo!")
+    st.title("Grazie per il tuo prezioso contributo!")
+    
+    st.markdown("""
+    I tuoi dati sono stati salvati in forma **totalmente anonima** e saranno fondamentali per la nostra indagine sperimentale presso il Dipartimento di Scienze Sociali dell'Università degli Studi di Napoli Federico II.
+    
+    Puoi chiudere questa finestra del browser in qualsiasi momento.
+    """)
     )
     
     if st.button("Invia le risposte e completa lo studio"):
