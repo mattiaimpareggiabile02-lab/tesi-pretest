@@ -73,7 +73,6 @@ if 'turni_utente' not in st.session_state:
 # FASE 1: INFORMAZIONI E DEMOGRAFICA
 # ==========================================
 if st.session_state.fase == 1:
-    
     st.image("https://upload.wikimedia.org/wikipedia/it/thumb/3/36/Logo_della_Federico_II.svg/1200px-Logo_della_Federico_II.svg.png", width=150)
     st.title("Studio sull'interazione uomo-IA")
     
@@ -513,5 +512,5 @@ elif st.session_state.fase == 5:
 # FASE 6: RINGRAZIAMENTI
 # ==========================================
 elif st.session_state.fase == 6:
-st.success("Grazie mille per la tua partecipazione!")
+    st.success("Grazie mille per la tua partecipazione!")
     st.write("I tuoi dati sono stati registrati con successo in forma anonima. Puoi chiudere questa pagina.")
