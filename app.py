@@ -66,8 +66,38 @@ if 'timestamp_ultima_risposta' not in st.session_state:
     st.session_state.timestamp_ultima_risposta = None
 
 # ==========================================
-# FUNZIONE SALVATAGGIO DATI COMPLETI
+# FUNZIONI DI GESTIONE DATI E ASSEGNAZIONE
 # ==========================================
+def assegna_condizioni_bilanciate():
+    """Legge il dataset e assegna la combinazione con meno partecipanti per bilanciare il campione."""
+    try:
+        gc = gspread.service_account_from_dict(st.secrets["gcp_service_account"])
+        wks = gc.open("Ricerca_Tesi_IA_Dataset").sheet1
+        records = wks.get_all_values()
+        
+        # Inizializza a zero tutte le 9 combinazioni possibili
+        conteggi = {(s, i): 0 for s in SCENARI.keys() for i in PROMPT_IA.keys()}
+        
+        # Conta i partecipanti già presenti (Scenario = colonna 12, IA = colonna 14 nell'indice base 0)
+        if len(records) > 0:
+            for row in records:
+                if len(row) >= 15:
+                    s_macro = row[12]
+                    ia_cond = row[14]
+                    if (s_macro, ia_cond) in conteggi:
+                        conteggi[(s_macro, ia_cond)] += 1
+                        
+        # Trova la combinazione meno frequente
+        min_count = min(conteggi.values())
+        combinazioni_minime = [k for k, v in conteggi.items() if v == min_count]
+        
+        # Sceglie a caso tra quelle col numero minore
+        return random.choice(combinazioni_minime)
+        
+    except Exception as e:
+        # Se c'è un problema di connessione temporaneo a Google, assegna puramente a caso come fallback di sicurezza
+        return random.choice(list(SCENARI.keys())), random.choice(list(PROMPT_IA.keys()))
+
 def salva_dati_completi():
     try:
         gc = gspread.service_account_from_dict(st.secrets["gcp_service_account"])
@@ -210,10 +240,14 @@ if st.session_state.fase == 1:
                     "pre_solitudine_2": pre_sol_2
                 }
                 
-                st.session_state.condizione_scenario_macro = random.choice(list(SCENARI.keys()))
-                st.session_state.condizione_scenario_testo = random.choice(SCENARI[st.session_state.condizione_scenario_macro])
-                st.session_state.condizione_ia = random.choice(list(PROMPT_IA.keys()))
-                st.session_state.messaggi.append({"role": "system", "content": PROMPT_IA[st.session_state.condizione_ia]})
+                # Attivazione dell'assegnazione bilanciata
+                with st.spinner("Preparazione dello scenario..."):
+                    scenario_macro, condizione_ia = assegna_condizioni_bilanciate()
+                
+                st.session_state.condizione_scenario_macro = scenario_macro
+                st.session_state.condizione_scenario_testo = random.choice(SCENARI[scenario_macro])
+                st.session_state.condizione_ia = condizione_ia
+                st.session_state.messaggi.append({"role": "system", "content": PROMPT_IA[condizione_ia]})
                 
                 st.session_state.fase = 2
                 st.rerun()
