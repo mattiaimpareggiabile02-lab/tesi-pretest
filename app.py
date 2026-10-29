@@ -150,15 +150,20 @@ def salva_dati_completi():
 if st.session_state.fase == 1:
     st.image("https://upload.wikimedia.org/wikipedia/it/thumb/3/36/Logo_della_Federico_II.svg/1200px-Logo_della_Federico_II.svg.png", width=140)
     st.title("Studio sperimentale sull'interazione uomo-ia")
-    st.caption("Dipartimento di scienze sociali — Università degli studi di Napoli Federico II")
     
     st.markdown("""
-    Gentile partecipante,  
-    ti invitiamo a prendere parte a uno studio di ricerca accademica volta a comprendere le dinamiche di interazione tra persone e sistemi di intelligenza artificiale generativa.
-    
-    * **Durata stimata:** circa 8-10 minuti.
-    * **Anonimato:** tutti i dati raccolti saranno trattati in forma completamente anonima e aggregata ai sensi del GDPR.
-    * **Volontarietà:** puoi interrompere la partecipazione in qualsiasi momento.
+    Nell'ambito delle attività del Dipartimento di Scienze Sociali dell'Università degli Studi di Napoli Federico II, stiamo svolgendo uno studio volto ad esplorare le esperienze e modalità di interazione con l'Intelligenza Artificiale (IA), una tecnologia sempre più presente nella vita quotidiana degli individui. 
+
+    Di seguito, ti proponiamo un questionario inerente la tua esperienza personale sul tema. In seguito, interagirai direttamente con un sistema di IA progettato appositamente per lo studio e potrai riportare la tua esperienza rispetto a quest'ultima interazione.
+
+    I dati raccolti saranno trattati in modo aggregato nel rispetto della normativa che garantisce il diritto alla privacy e il trattamento dei dati personali (Reg.(UE), 27 aprile 2016, n. 2016/679) ed utilizzati esclusivamente per scopi di ricerca.
+    La ricerca è condotta nel rispetto del Codice Etico dell'Associazione Italiana di Psicologia, del Codice Deontologico dell'Ordine Nazionale degli Psicologi e della Dichiarazione di Helsinki.
+
+    L'invio del modulo compilato costituisce consenso a partecipare alla ricerca. Puoi comunque decidere di ritirarti in qualsiasi momento dalla ricerca e comunicarlo inviando un'email all'indirizzo stefania.zinno@unina.it
+
+    Per qualsiasi domanda o chiarimento, puoi rivolgerti alla prof.ssa Stefania Zinno, inviando un'email all'indirizzo stefania.zinno@unina.it
+
+    Grazie per la tua collaborazione!
     """)
     
     consenso = st.checkbox("Dichiaro di aver compreso l'informativa, di avere almeno 18 anni e acconsento al trattamento anonimo dei miei dati.")
@@ -410,7 +415,7 @@ elif st.session_state.fase == 5:
     st.title("Grazie per il tuo prezioso contributo!")
     
     st.markdown("""
-    I tuoi dati sono stati salvati in forma **totalmente anonima** e saranno fondamentali per la nostra indagine sperimentale presso il Dipartimento di scienze sociali dell'Università degli studi di Napoli Federico II.
+    I tuoi dati sono stati salvati in forma **totalmente anonima** e saranno fondamentali per la nostra indagine sperimentale presso il Dipartimento di Scienze Sociali dell'Università degli Studi di Napoli Federico II.
     
     Puoi chiudere questa finestra del browser in qualsiasi momento.
-    """)
+    """
