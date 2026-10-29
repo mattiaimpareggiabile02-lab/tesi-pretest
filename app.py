@@ -329,9 +329,9 @@ elif st.session_state.fase == 4:
     st.title("Interazione con IA")
     st.write(f"**Promemoria Obiettivo:** {st.session_state.condizione_scenario_macro}")
     
-    # Pannello laterale (Sidebar) per avvisi e comandi di conclusione
+    # Pannello laterale (Sidebar) per avvisi opzionali senza bloccare la chat
     with st.sidebar:
-        st.header("Stato Interazione")
+        st.header("Opzioni Interazione")
         
         # Controllo timer globale di 4 minuti (240 secondi)
         tempo_trascorso = time.time() - st.session_state.inizio_chat
@@ -341,21 +341,18 @@ elif st.session_state.fase == 4:
                 st.session_state.fase = 5
                 st.rerun()
         else:
-            # Controllo timer di 40 secondi dall'ultima risposta dell'IA
+            # Controllo timer di 40 secondi dall'ultima risposta dell'IA (opzionale)
             if st.session_state.turni_utente >= 1 and st.session_state.timestamp_ultima_risposta is not None:
                 tempo_da_ultima = time.time() - st.session_state.timestamp_ultima_risposta
                 if tempo_da_ultima >= 40:
-                    st.info("💡 Non sai più cosa dire? Puoi concludere l'interazione.")
+                    st.info("💡 Non sai più cosa dire? Puoi concludere l'interazione quando desideri.")
                     if st.button("Concludi e vai al questionario", key="btn_sidebar_concludi"):
                         st.session_state.fase = 5
                         st.rerun()
                 else:
-                    st.write("⏳ Conversazione in corso...")
-                    # Ricarica automatica in background per aggiornare il timer lateralmente
-                    time.sleep(1)
-                    st.rerun()
+                    st.write("💬 Conversazione attiva.")
             else:
-                st.write("Inizia a scrivere nella chat principale.")
+                st.write("Scrivi liberamente nella chat.")
 
     # Visualizzazione della cronologia dei messaggi della chat
     for msg in st.session_state.messaggi:
@@ -363,7 +360,7 @@ elif st.session_state.fase == 4:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
     
-    # Campo di input sempre attivo per permettere all'utente di scrivere liberamente
+    # Campo di input principale: sempre libero e attivo
     if prompt_utente := st.chat_input("Scrivi il tuo messaggio qui..."):
         if (time.time() - st.session_state.inizio_chat) > 240:
             st.warning("Tempo scaduto. Procedi al questionario.")
@@ -385,7 +382,8 @@ elif st.session_state.fase == 4:
                 risposta_ia = f"[Errore di connessione all'IA: {e}]"
             
             st.session_state.messaggi.append({"role": "assistant", "content": risposta_ia})
-            # AZZERAMENTO DEL TIMER: ogni volta che l'IA risponde, il timer riparte da zero (40 secondi)
+            
+            # IL TIMER RIPARTE DA ZERO: ogni volta che l'IA risponde, il timer dei 40 secondi si azzera
             st.session_state.timestamp_ultima_risposta = time.time()
             
             with st.chat_message("assistant"):
