@@ -33,12 +33,12 @@ st.markdown("""
 MAX_TURNI = 5 
 
 SCENARI = {
-    "Supporto emotivo": [
+    "Supporto Emotivo": [
         "Pensa ad un evento che ti è accaduto di recente, che ti ha causato un vissuto di forte stress, tensione o nervosismo. Vorresti sfogarti ma senti che nessuno capisce davvero il tuo vissuto, così decidi di rivolgerti ad un sistema di intelligenza artificiale per cercare conforto e sentirti compreso/a.",
         "Immagina di sentirti molto solo/a. Vorresti chiacchierare con un amico/a, ma non c’è nessuno che tu possa contattare nell’immediato, così decidi di rivolgerti ad un sistema di intelligenza artificiale per avere compagnia e alleviare il tuo senso di solitudine.",
         "Immagina di essere a casa dopo una lunga giornata in cui ti sono successe diverse cose e hai avuto diversi pensieri che continui a portarti dietro. Non è accaduto necessariamente qualcosa di grave, ma ti senti sotto pressione e hai bisogno di trovare un momento per te stesso/a e rimettere in ordine i pensieri. Vuoi parlare con qualcuno per raccontare cosa ti passa per la testa, che ti possa capire e magari farti sfogare un po’. Hai bisogno di esprimerti liberamente, sentendoti ascoltato/a e a tuo agio. Per questo decidi di interagire con un sistema di intelligenza artificiale."
     ],
-    "Supporto pragmatico": [
+    "Supporto Pragmatico": [
         "Immagina di stare studiando per un esame o svolgendo un’attività (ad esempio, quotidiana o lavorativa) per te importante. Una circostanza imprevista ti rende necessario acquisire alcune informazioni fondamentali per portare a termine il compito, così decidi di chiederle ad un sistema di intelligenza artificiale."
     ],
     "Intrattenimento": [
@@ -48,8 +48,8 @@ SCENARI = {
 
 PROMPT_IA = {
     "Asettica": "Sei un sistema informatico di elaborazione dati. Rispondi in modo estremamente conciso, fattuale, freddo e robotico. Non usare mai pronomi personali (né 'io' né 'tu'). Non mostrare emozioni. Fornisci solo dati.",
-    "Basso antropomorfismo": "Sei un assistente virtuale utile ed educato. Usa un linguaggio formale e professionale. Ricorda che sei un'IA. Sii collaborativo ma mantieni un tono distaccato, neutro e di servizio.",
-    "Alto antropomorfismo": "Sei un compagno di conversazione umano, caldo ed empatico. Dai del 'tu' all'utente. Mostra sincero interesse, usa espressioni colloquiali (es. 'Mhm', 'Capisco'), usa emoji e fai domande per approfondire il legame emotivo."
+    "Basso Antropomorfismo": "Sei un assistente virtuale utile ed educato. Usa un linguaggio formale e professionale. Ricorda che sei un'IA. Sii collaborativo ma mantieni un tono distaccato, neutro e di servizio.",
+    "Alto Antropomorfismo": "Sei un compagno di conversazione umano, caldo ed empatico. Dai del 'tu' all'utente. Mostra sincero interesse, usa espressioni colloquiali (es. 'Mhm', 'Capisco'), usa emoji e fai domande per approfondire il legame emotivo."
 }
 
 if 'fase' not in st.session_state:
@@ -73,6 +73,7 @@ if 'turni_utente' not in st.session_state:
 # FASE 1: INFORMAZIONI E DEMOGRAFICA
 # ==========================================
 if st.session_state.fase == 1:
+    
     st.image("https://upload.wikimedia.org/wikipedia/it/thumb/3/36/Logo_della_Federico_II.svg/1200px-Logo_della_Federico_II.svg.png", width=150)
     st.title("Studio sull'interazione uomo-IA")
     
@@ -85,7 +86,7 @@ if st.session_state.fase == 1:
     La ricerca è condotta nel rispetto del Codice Etico dell'Associazione Italiana di Psicologia, del Codice Deontologico dell'Ordine Nazionale degli Psicologi e della Dichiarazione di Helsinki.  
     
     L'invio del modulo compilato costituisce consenso a partecipare alla ricerca. Puoi comunque decidere di ritirarti in qualsiasi momento dalla ricerca e comunicarlo inviando un'email all'indirizzo stefania.zinno@\u200bunina.it.  
-    Per qualsiasi domanda o chiarimento, puoi rivolgerti alla prof.ssa Stefania Zinno al medesimo indirizzo (stefania.zinno@\u200bunina.it).
+    Per qualsiasi domanda o chiarimento, puoi rivolgerti alla prof.ssa Stefania Zinno al medesimo indirizzo.
     
     **Grazie per la tua collaborazione!**
     """)
@@ -98,13 +99,13 @@ if st.session_state.fase == 1:
     
     eta = st.number_input("Età", min_value=18, max_value=99, step=1)
     genere = st.selectbox("Genere", ["Seleziona", "Uomo", "Donna", "Non binario", "Preferisco non specificare"])
-    titolo_studio = st.selectbox("Titolo di studio", ["Seleziona", "Licenza media", "Diploma", "Laurea Triennale", "Laurea Magistrale/Master", "Dottorato"])
-    occupazione = st.selectbox("Condizione occupazionale", ["Seleziona", "Studente", "Lavoratore dipendente", "Libero professionista", "In cerca di occupazione", "Altro"])
-    stato_civile = st.selectbox("Stato civile", ["Seleziona", "Celibe/Nubile", "Coniugato/a", "Convivente", "Separato/a", "Divorziato/a", "Vedovo/a"])
+    titolo_studio = st.selectbox("Titolo di Studio", ["Seleziona", "Licenza media", "Diploma", "Laurea Triennale", "Laurea Magistrale/Master", "Dottorato"])
+    occupazione = st.selectbox("Condizione Occupazionale", ["Seleziona", "Studente", "Lavoratore dipendente", "Libero professionista", "In cerca di occupazione", "Altro"])
+    stato_civile = st.selectbox("Stato Civile", ["Seleziona", "Celibe/Nubile", "Coniugato/a", "Convivente", "Separato/a", "Divorziato/a", "Vedovo/a"])
     frequenza_ia = st.selectbox("Con che frequenza usi strumenti di IA generativa (es. ChatGPT)?", 
                                 ["Seleziona", "Mai usati", "Raramente", "Occasionalmente", "Spesso", "Quotidianamente"])
     
-    if st.button("Vai al questionario"):
+    if st.button("Vai al Questionario"):
         if not consenso:
             st.error("Attenzione: devi fornire il consenso sulla privacy (spuntando la casella in alto) per poter partecipare allo studio.")
         elif genere != "Seleziona" and titolo_studio != "Seleziona" and occupazione != "Seleziona" and stato_civile != "Seleziona" and frequenza_ia != "Seleziona":
@@ -131,7 +132,7 @@ if st.session_state.fase == 1:
 # FASE 2: QUESTIONARIO PRE-SPERIMENTAZIONE (Paginato)
 # ==========================================
 elif st.session_state.fase == 2:
-    st.title("Questionario iniziale")
+    st.title("Questionario Iniziale")
     
     # === SOTTO-FASE 1 ===
     if st.session_state.sub_fase_pre == 1:
@@ -165,7 +166,7 @@ elif st.session_state.fase == 2:
             "Se le altre persone non sembrano accettarmi, non lascio che questo mi disturbi.", "Mi impegno per non fare cose che porteranno le altre persone a rifiutarmi o evitarmi.", 
             "Di rado mi domando se le altre persone si prendono cura di me.", "Ho bisogno di sentire che ci sono persone a cui posso rivolgermi in situazioni di necessità.", 
             "Voglio che le altre persone mi accettino.", "Non mi piace essere solo/a.", 
-            "Essere separato dai miei amici per lunghi periodi di tempo non mi infastidisce.", "Ho un forte bisogno di appartenere.", 
+            "Essere separato dai miei amici per lunghi periodi di tempo non mi infastidisce.", "Ho un forte “bisogno di appartenere”.", 
             "Mi infastidisce molto non essere incluso/a nei programmi delle altre persone.", "I miei sentimenti vengono facilmente feriti quando sento che gli altri non mi accettano."
         ]
         for i, q in enumerate(domande_b2):
@@ -281,7 +282,7 @@ elif st.session_state.fase == 2:
             if r is None: tutte_compilate_3 = False
         st.markdown("---")
 
-        if st.button("Procedi allo scenario 🎯"):
+        if st.button("Procedi allo Scenario 🎯"):
             if not tutte_compilate_3:
                 st.error("Per favore, rispondi a tutte le domande prima di procedere.")
             else:
@@ -293,7 +294,7 @@ elif st.session_state.fase == 2:
 # FASE 3: PRESENTAZIONE SCENARIO
 # ==========================================
 elif st.session_state.fase == 3:
-    st.title("Il tuo scenario")
+    st.title("Il tuo Scenario")
     
     st.markdown("""
     *Prenditi qualche secondo per immaginare la situazione qui descritta, come se ti stesse accadendo ora. 
@@ -317,7 +318,7 @@ elif st.session_state.fase == 3:
 elif st.session_state.fase == 4:
     st.title("Interazione con IA")
     
-    st.write(f"**Promemoria obiettivo:** {st.session_state.condizione_scenario_macro}")
+    st.write(f"**Promemoria Obiettivo:** {st.session_state.condizione_scenario_macro}")
     
     for msg in st.session_state.messaggi:
         if msg["role"] != "system":
@@ -351,7 +352,7 @@ elif st.session_state.fase == 4:
             st.rerun()
     else:
         st.warning("Hai raggiunto il numero di scambi previsto per l'esperimento. Procedi al questionario finale.")
-        if st.button("Vai al questionario"):
+        if st.button("Vai al Questionario"):
             st.session_state.fase = 5
             st.rerun()
 
@@ -359,7 +360,7 @@ elif st.session_state.fase == 4:
 # FASE 5: QUESTIONARIO POST-INTERAZIONE
 # ==========================================
 elif st.session_state.fase == 5:
-    st.title("Questionario finale")
+    st.title("Questionario Finale")
     
     st.markdown("""
     *Di seguito, ti proponiamo un questionario inerente l’esperienza di interazione con l’intelligenza artificiale che hai appena vissuto. 
@@ -476,7 +477,7 @@ elif st.session_state.fase == 5:
         if r is None: tutte_post_compilate = False
     st.markdown("---")
 
-    if st.button("Invia risposte e concludi"):
+    if st.button("Invia Risposte e Concludi"):
         if not tutte_post_compilate:
             st.error("Per favore, rispondi a tutte le domande del questionario finale prima di inviare.")
         else:
