@@ -324,70 +324,79 @@ elif st.session_state.fase == 3:
 # FASE 4: CHAT (L'INTERAZIONE)
 # ==========================================
 elif st.session_state.fase == 4:
+    DURATA_MAX = 240       # 4 minuti
+    SOGLIA_SILENZIO = 30   # secondi dopo l'ultima risposta dell'IA
+
     st.title("Interazione con IA")
     st.write(f"**Promemoria Obiettivo:** {st.session_state.condizione_scenario_macro}")
-    
-    # Pannello laterale (Sidebar) per opzioni e timer non bloccanti
-    with st.sidebar:
+
+    # Frammento che si riesegue da solo ogni secondo, anche se l'utente non fa nulla
+    @st.fragment(run_every=1)
+    def pannello_timer():
         st.header("Opzioni Interazione")
-        
-        # Controllo timer globale di 4 minuti (240 secondi)
-        tempo_trascorso = time.time() - st.session_state.inizio_chat
-        if tempo_trascorso > 240:
+        ora = time.time()
+
+        # Timer globale di 4 minuti
+        if ora - st.session_state.inizio_chat >= DURATA_MAX:
+            if not st.session_state.chat_chiusa:
+                st.session_state.chat_chiusa = True
+                st.rerun(scope="app")  # ricarica tutta la pagina per nascondere il campo di testo
             st.warning("⏱️ Tempo massimo raggiunto (4 minuti).")
             if st.button("Prosegui con il questionario finale", key="btn_sidebar_timeout"):
                 st.session_state.fase = 5
-                st.rerun()
-        else:
-            # Controllo timer di 40 secondi dall'ultima risposta dell'IA
-            if st.session_state.turni_utente >= 1 and st.session_state.timestamp_ultima_risposta is not None:
-                tempo_da_ultima = time.time() - st.session_state.timestamp_ultima_risposta
-                if tempo_da_ultima >= 40:
-                    st.info("💡 Non sai più cosa dire? Puoi concludere l'interazione quando desideri.")
-                    if st.button("Concludi e vai al questionario", key="btn_sidebar_concludi"):
-                        st.session_state.fase = 5
-                        st.rerun()
-                else:
-                    st.write("💬 Conversazione attiva.")
-            else:
-                st.write("Scrivi liberamente nella chat.")
+                st.rerun(scope="app")
+            return
 
-    # Visualizzazione della cronologia dei messaggi della chat
+        # Timer di 30 secondi dall'ultima risposta dell'IA
+        if st.session_state.turni_utente >= 1 and st.session_state.timestamp_ultima_risposta is not None:
+            if ora - st.session_state.timestamp_ultima_risposta >= SOGLIA_SILENZIO:
+                st.info("💡 Non sai più cosa dire? Puoi concludere l'interazione quando desideri.")
+                if st.button("Concludi e vai al questionario", key="btn_sidebar_concludi"):
+                    st.session_state.fase = 5
+                    st.rerun(scope="app")
+            else:
+                st.write("💬 Conversazione attiva.")
+        else:
+            st.write("Scrivi liberamente nella chat.")
+
+    # Il frammento va chiamato DENTRO la sidebar (st.sidebar non si può usare dentro un frammento)
+    with st.sidebar:
+        pannello_timer()
+
+    # Cronologia dei messaggi
     for msg in st.session_state.messaggi:
         if msg["role"] != "system":
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
-    
-    # Campo di input principale: sempre libero e attivo, nessuna interruzione
-    if prompt_utente := st.chat_input("Scrivi il tuo messaggio qui..."):
-        if (time.time() - st.session_state.inizio_chat) > 240:
-            st.warning("Tempo scaduto. Procedi al questionario.")
-        else:
-            st.session_state.messaggi.append({"role": "user", "content": prompt_utente})
-            st.session_state.turni_utente += 1
-            
-            with st.chat_message("user"):
-                st.markdown(prompt_utente)
-            
-            try:
-                client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-                response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=st.session_state.messaggi
-                )
-                risposta_ia = response.choices[0].message.content
-            except Exception as e:
-                risposta_ia = f"[Errore di connessione all'IA: {e}]"
-            
-            st.session_state.messaggi.append({"role": "assistant", "content": risposta_ia})
-            
-            # AZZERAMENTO DEL TIMER: ogni volta che l'IA risponde, il timer riparte da zero
-            st.session_state.timestamp_ultima_risposta = time.time()
-            
-            with st.chat_message("assistant"):
-                st.markdown(risposta_ia)
-            
-            st.rerun()
+
+    tempo_scaduto = st.session_state.chat_chiusa or (time.time() - st.session_state.inizio_chat) >= DURATA_MAX
+
+    if tempo_scaduto:
+        st.session_state.chat_chiusa = True
+        st.warning("⏱️ Il tempo dell'interazione è terminato. Usa il pulsante nel pannello laterale per proseguire con il questionario finale.")
+    elif prompt_utente := st.chat_input("Scrivi il tuo messaggio qui..."):
+        st.session_state.messaggi.append({"role": "user", "content": prompt_utente})
+        st.session_state.turni_utente += 1
+
+        with st.chat_message("user"):
+            st.markdown(prompt_utente)
+
+        try:
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=st.session_state.messaggi
+            )
+            risposta_ia = response.choices[0].message.content
+        except Exception as e:
+            risposta_ia = f"[Errore di connessione all'IA: {e}]"
+
+        st.session_state.messaggi.append({"role": "assistant", "content": risposta_ia})
+
+        # Il timer dei 30 secondi riparte da zero a ogni risposta dell'IA
+        st.session_state.timestamp_ultima_risposta = time.time()
+
+        st.rerun()
 
 # ==========================================
 # FASE 5: QUESTIONARIO POST-INTERAZIONE
