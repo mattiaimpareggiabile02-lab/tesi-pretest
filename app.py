@@ -329,66 +329,75 @@ elif st.session_state.fase == 4:
     st.title("Interazione con IA")
     st.write(f"**Promemoria Obiettivo:** {st.session_state.condizione_scenario_macro}")
     
-    # Controllo timer globale di 4 minuti (240 secondi)
-    tempo_trascorso = time.time() - st.session_state.inizio_chat
-    if tempo_trascorso > 240:
-        st.warning("⏱️ Hai raggiunto il tempo massimo previsto per questa fase (4 minuti).")
-        if st.button("Prosegui con il questionario finale"):
-            st.session_state.fase = 5
-            st.rerun()
-    else:
-        for msg in st.session_state.messaggi:
-            if msg["role"] != "system":
-                with st.chat_message(msg["role"]):
-                    st.markdown(msg["content"])
+    # Pannello laterale (Sidebar) per avvisi e comandi di conclusione
+    with st.sidebar:
+        st.header("Stato Interazione")
         
-        # Gestione del timer di 40 secondi dall'ultima risposta dell'IA (mostrato come vignetta esterna)
-        if st.session_state.turni_utente >= 1 and st.session_state.timestamp_ultima_risposta is not None:
-            tempo_da_ultima = time.time() - st.session_state.timestamp_ultima_risposta
-            if tempo_da_ultima >= 40:
-                st.info("💡 **Avviso:** Non sai più cosa dire? Puoi concludere l'interazione in qualsiasi momento.")
-                if st.button("Concludi l'interazione e passa al questionario"):
-                    st.session_state.fase = 5
-                    st.rerun()
-            else:
-                # Forza il ricaricamento automatico della pagina per far scalare il tempo senza richiedere interazioni
-                tempo_mancante = int(40 - tempo_da_ultima)
-                time.sleep(1)
-                st.rerun()
-        
-        if st.session_state.turni_utente < MAX_TURNI:
-            if prompt_utente := st.chat_input("Scrivi il tuo messaggio qui..."):
-                if (time.time() - st.session_state.inizio_chat) > 240:
-                    st.rerun()
-                else:
-                    st.session_state.messaggi.append({"role": "user", "content": prompt_utente})
-                    st.session_state.turni_utente += 1
-                    
-                    with st.chat_message("user"):
-                        st.markdown(prompt_utente)
-                    
-                    try:
-                        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-                        response = client.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=st.session_state.messaggi
-                        )
-                        risposta_ia = response.choices[0].message.content
-                    except Exception as e:
-                        risposta_ia = f"[Errore di connessione all'IA: {e}]"
-                    
-                    st.session_state.messaggi.append({"role": "assistant", "content": risposta_ia})
-                    st.session_state.timestamp_ultima_risposta = time.time()
-                    
-                    with st.chat_message("assistant"):
-                        st.markdown(risposta_ia)
-                    
-                    st.rerun()
-        else:
-            st.warning("Hai raggiunto il numero di scambi previsto per l'esperimento. Procedi al questionario finale.")
-            if st.button("Vai al questionario"):
+        # Controllo timer globale di 4 minuti (240 secondi)
+        tempo_trascorso = time.time() - st.session_state.inizio_chat
+        if tempo_trascorso > 240:
+            st.warning("⏱️ Tempo massimo raggiunto (4 minuti).")
+            if st.button("Prosegui con il questionario finale", key="btn_sidebar_timeout"):
                 st.session_state.fase = 5
                 st.rerun()
+        else:
+            # Controllo timer di 40 secondi dall'ultima risposta dell'IA
+            if st.session_state.turni_utente >= 1 and st.session_state.timestamp_ultima_risposta is not None:
+                tempo_da_ultima = time.time() - st.session_state.timestamp_ultima_risposta
+                if tempo_da_ultima >= 40:
+                    st.info("💡 Non sai più cosa dire? Puoi concludere l'interazione.")
+                    if st.button("Concludi e vai al questionario", key="btn_sidebar_concludi"):
+                        st.session_state.fase = 5
+                        st.rerun()
+                else:
+                    st.write("⏳ Conversazione in corso...")
+                    # Ricarica automatica in background per aggiornare il timer lateralmente
+                    time.sleep(1)
+                    st.rerun()
+            else:
+                st.write("Inizia a scrivere nella chat principale.")
+
+    # Visualizzazione della cronologia dei messaggi della chat
+    for msg in st.session_state.messaggi:
+        if msg["role"] != "system":
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+    
+    # Campo di input sempre attivo per permettere all'utente di scrivere liberamente
+    if prompt_utente := st.chat_input("Scrivi il tuo messaggio qui..."):
+        if (time.time() - st.session_state.inizio_chat) > 240:
+            st.warning("Tempo scaduto. Procedi al questionario.")
+        else:
+            st.session_state.messaggi.append({"role": "user", "content": prompt_utente})
+            st.session_state.turni_utente += 1
+            
+            with st.chat_message("user"):
+                st.markdown(prompt_utente)
+            
+            try:
+                client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=st.session_state.messaggi
+                )
+                risposta_ia = response.choices[0].message.content
+            except Exception as e:
+                risposta_ia = f"[Errore di connessione all'IA: {e}]"
+            
+            st.session_state.messaggi.append({"role": "assistant", "content": risposta_ia})
+            # AZZERAMENTO DEL TIMER: ogni volta che l'IA risponde, il timer riparte da zero (40 secondi)
+            st.session_state.timestamp_ultima_risposta = time.time()
+            
+            with st.chat_message("assistant"):
+                st.markdown(risposta_ia)
+            
+            st.rerun()
+
+    if st.session_state.turni_utente >= MAX_TURNI:
+        st.warning("Hai raggiunto il numero di scambi previsto per l'esperimento. Procedi al questionario finale.")
+        if st.button("Vai al questionario", key="btn_fine_turni"):
+            st.session_state.fase = 5
+            st.rerun()
 
 # ==========================================
 # FASE 5: QUESTIONARIO POST-INTERAZIONE
