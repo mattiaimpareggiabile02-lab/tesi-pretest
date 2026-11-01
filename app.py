@@ -28,6 +28,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Percorso del logo: cerca il file nella stessa cartella di questo script
+CARTELLA_APP = os.path.dirname(os.path.abspath(__file__))
+PERCORSO_LOGO = os.path.join(CARTELLA_APP, "logo_unina.png")
+
 # Durate dei timer (in secondi)
 DURATA_MAX = 240        # 4 minuti di interazione totale
 SOGLIA_SILENZIO = 30    # secondi dopo l'ultima risposta dell'IA
@@ -75,7 +79,10 @@ for chiave, valore in VALORI_INIZIALI.items():
 # ==========================================
 if st.session_state.fase == 1:
 
-    st.image("https://upload.wikimedia.org/wikipedia/it/thumb/3/36/Logo_della_Federico_II.svg/1200px-Logo_della_Federico_II.svg.png", width=150)
+    # Logo (se il file manca, la pagina funziona comunque senza immagine)
+    if os.path.exists(PERCORSO_LOGO):
+        st.image(PERCORSO_LOGO, width=150)
+
     st.title("Studio sull'interazione uomo-IA")
 
     st.markdown("""
@@ -337,9 +344,9 @@ elif st.session_state.fase == 4:
 
     # Frammento che si riesegue da solo ogni secondo, anche se l'utente non fa nulla.
     # Senza questo, Streamlit ricontrolla i timer solo quando l'utente clicca o scrive.
+    # Ora è mostrato nella pagina principale (sopra la chat), così è ben visibile anche da cellulare.
     @st.fragment(run_every=1)
     def pannello_timer():
-        st.header("Opzioni Interazione")
         ora = time.time()
 
         # Timer globale di 4 minuti
@@ -348,7 +355,7 @@ elif st.session_state.fase == 4:
                 st.session_state.chat_chiusa = True
                 st.rerun(scope="app")  # ricarica tutta la pagina per nascondere il campo di testo
             st.warning("⏱️ Tempo massimo raggiunto (4 minuti).")
-            if st.button("Prosegui con il questionario finale", key="btn_sidebar_timeout"):
+            if st.button("➡️ Prosegui con il questionario finale", key="btn_timeout", use_container_width=True):
                 st.session_state.fase = 5
                 st.rerun(scope="app")
             return
@@ -357,17 +364,11 @@ elif st.session_state.fase == 4:
         if st.session_state.turni_utente >= 1 and st.session_state.timestamp_ultima_risposta is not None:
             if ora - st.session_state.timestamp_ultima_risposta >= SOGLIA_SILENZIO:
                 st.info("💡 Non sai più cosa dire? Puoi concludere l'interazione quando desideri.")
-                if st.button("Concludi e vai al questionario", key="btn_sidebar_concludi"):
+                if st.button("➡️ Concludi e vai al questionario", key="btn_concludi", use_container_width=True):
                     st.session_state.fase = 5
                     st.rerun(scope="app")
-            else:
-                st.write("💬 Conversazione attiva.")
-        else:
-            st.write("Scrivi liberamente nella chat.")
 
-    # Il frammento va chiamato DENTRO la sidebar (st.sidebar non si può usare dentro un frammento)
-    with st.sidebar:
-        pannello_timer()
+    pannello_timer()
 
     # Cronologia dei messaggi
     for msg in st.session_state.messaggi:
@@ -379,7 +380,7 @@ elif st.session_state.fase == 4:
 
     if tempo_scaduto:
         st.session_state.chat_chiusa = True
-        st.warning("⏱️ Il tempo dell'interazione è terminato. Usa il pulsante nel pannello laterale per proseguire con il questionario finale.")
+        st.warning("⏱️ Il tempo dell'interazione è terminato. Usa il pulsante qui sopra per proseguire con il questionario finale.")
     elif prompt_utente := st.chat_input("Scrivi il tuo messaggio qui..."):
         st.session_state.messaggi.append({"role": "user", "content": prompt_utente})
         st.session_state.turni_utente += 1
