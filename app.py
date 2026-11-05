@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import random
 import time
 import os
@@ -54,6 +55,13 @@ PROMPT_IA = {
     "Alto Antropomorfismo": "Sei un compagno di conversazione umano, caldo ed empatico. Dai del 'tu' all'utente. Mostra sincero interesse, usa espressioni colloquiali (es. 'Mhm', 'Capisco'), usa emoji e fai domande per approfondire il legame emotivo."
 }
 
+# Opzioni dei campi socio-demografici
+OPZ_GENERE = ["Seleziona", "Uomo", "Donna", "Non binario", "Preferisco non specificare"]
+OPZ_TITOLO = ["Seleziona", "Licenza media", "Diploma", "Laurea Triennale", "Laurea Magistrale", "Titolo post-laurea (es. dottorato, master)"]
+OPZ_OCCUPAZIONE = ["Seleziona", "Dirigente", "Libero professionista (freelancer)", "Studente/essa", "Disoccupato/a", "Lavoratore/trice dipendente", "Pensionato/a", "Imprenditore/trice", "Altro"]
+OPZ_STATO_CIVILE = ["Seleziona", "Celibe/nubile", "In una coppia non convivente e non sposata", "Convivente/coniugato-a", "Separato/a, divorziato/a", "Vedovo/a"]
+OPZ_FREQUENZA_IA = ["Seleziona", "Mai usati", "Raramente", "Occasionalmente", "Spesso", "Quotidianamente"]
+
 # ==========================================
 # INIZIALIZZAZIONE DELLO STATO
 # ==========================================
@@ -61,6 +69,7 @@ VALORI_INIZIALI = {
     "fase": 1,
     "sub_fase_pre": 1,
     "dati_utente": {},
+    "form_demo": {},          # bozza dei campi della prima pagina (per poter tornare indietro)
     "pre_parte1": [],
     "pre_parte2": [],
     "dati_pre_test": [],
@@ -75,9 +84,51 @@ for chiave, valore in VALORI_INIZIALI.items():
         st.session_state[chiave] = valore
 
 # ==========================================
+# FUNZIONI DI SUPPORTO
+# ==========================================
+def scroll_in_alto(token):
+    """Riporta la pagina in cima a ogni cambio di pagina.
+    Il 'token' cambia a ogni pagina, così lo script viene rieseguito solo quando serve."""
+    js = """
+    <script>
+        function su() {
+            const doc = window.parent.document;
+            const selettori = ['[data-testid="stMain"]', 'section.main', '.main', '[data-testid="stAppViewContainer"]'];
+            selettori.forEach(function(s) {
+                const el = doc.querySelector(s);
+                if (el) { el.scrollTop = 0; }
+            });
+            window.parent.scrollTo(0, 0);
+        }
+        su();
+        setTimeout(su, 100);
+        setTimeout(su, 400);
+    </script>
+    """
+    components.html("<!-- " + str(token) + " -->" + js, height=0)
+
+
+def indice_opzione(opzioni, valore):
+    """Posizione di 'valore' nella lista (0 = 'Seleziona' se non trovato)."""
+    return opzioni.index(valore) if valore in opzioni else 0
+
+
+def radio_con_bozza(chiave, opzioni, salvate, posizione):
+    """Mostra un radio e, se l'utente è tornato indietro, ripristina la risposta già data."""
+    indice = None
+    if posizione < len(salvate) and salvate[posizione] in opzioni:
+        indice = opzioni.index(salvate[posizione])
+    return st.radio(chiave, opzioni, index=indice, horizontal=True, label_visibility="collapsed")
+
+
+# Riporta in alto a ogni cambio di pagina
+scroll_in_alto(f"{st.session_state.fase}-{st.session_state.sub_fase_pre}")
+
+# ==========================================
 # FASE 1: INFORMAZIONI E DEMOGRAFICA
 # ==========================================
 if st.session_state.fase == 1:
+    bozza = st.session_state.form_demo
 
     # Logo (se il file manca, la pagina funziona comunque senza immagine)
     if os.path.exists(PERCORSO_LOGO):
@@ -93,32 +144,35 @@ if st.session_state.fase == 1:
     I dati raccolti saranno trattati in modo aggregato nel rispetto della normativa che garantisce il diritto alla privacy e il trattamento dei dati personali (Reg.(UE), 27 aprile 2016, n. 2016/679) ed utilizzati esclusivamente per scopi di ricerca.  
     La ricerca è condotta nel rispetto del Codice Etico dell'Associazione Italiana di Psicologia, del Codice Deontologico dell'Ordine Nazionale degli Psicologi e della Dichiarazione di Helsinki.  
     
-    L'invio del modulo compilato costituisce consenso a partecipare alla ricerca. Puoi comunque decidere di ritirarti in qualsiasi momento dalla ricerca e comunicarlo inviando un'email all'indirizzo stefania.zinno@\u200bunina.it.  
+    L'invio del modulo compilato costituisce consenso a partecipare alla ricerca. Puoi comunque decidere di ritirarti in qualsiasi momento dalla ricerca e comunicarlo inviando un'email all'indirizzo Stefania.zinno at unina.it.  
     Per qualsiasi domanda o chiarimento, puoi rivolgerti alla prof.ssa Stefania Zinno al medesimo indirizzo.
     
     **Grazie per la tua collaborazione!**
     """)
 
     st.markdown("---")
-    consenso = st.checkbox("Dichiaro di aver letto l'informativa e acconsento al trattamento dei miei dati per questa ricerca.")
+    consenso = st.checkbox(
+        "Dichiaro di aver letto l'informativa e acconsento al trattamento dei miei dati per questa ricerca.",
+        value=bozza.get("consenso", False)
+    )
     st.markdown("---")
 
     st.write("Ti preghiamo di compilare queste brevi informazioni socio-demografiche prima di iniziare.")
 
-    eta = st.number_input("Età", min_value=18, max_value=99, step=1)
-    genere = st.selectbox("Genere", ["Seleziona", "Uomo", "Donna", "Non binario", "Preferisco non specificare"])
-    titolo_studio = st.selectbox("Titolo di Studio", ["Seleziona", "Licenza media", "Diploma", "Laurea Triennale", "Laurea Magistrale/Master", "Dottorato"])
+    eta = st.number_input("Età", min_value=18, max_value=99, step=1, value=bozza.get("eta", 18))
+    genere = st.selectbox("Genere", OPZ_GENERE, index=indice_opzione(OPZ_GENERE, bozza.get("genere")))
+    titolo_studio = st.selectbox("Titolo di Studio", OPZ_TITOLO, index=indice_opzione(OPZ_TITOLO, bozza.get("titolo_studio")))
 
-    occupazione = st.selectbox("Condizione Occupazionale", ["Seleziona", "Dirigente", "Libero professionista (freelancer)", "Studente/essa", "Disoccupato/a", "Lavoratore/trice dipendente", "Pensionato/a", "Imprenditore/trice", "Altro"])
+    occupazione = st.selectbox("Condizione Occupazionale", OPZ_OCCUPAZIONE, index=indice_opzione(OPZ_OCCUPAZIONE, bozza.get("occupazione")))
 
     occupazione_altro = ""
     if occupazione == "Altro":
-        occupazione_altro = st.text_input("Specifica la professione")
+        occupazione_altro = st.text_input("Specifica la professione", value=bozza.get("occupazione_altro", ""))
 
-    stato_civile = st.selectbox("Stato Civile", ["Seleziona", "Celibe/nubile", "In una coppia non convivente e non sposata", "Convivente/coniugato-a", "Separato/a, divorziato/a", "Vedovo/a"])
+    stato_civile = st.selectbox("Stato Civile", OPZ_STATO_CIVILE, index=indice_opzione(OPZ_STATO_CIVILE, bozza.get("stato_civile")))
 
     frequenza_ia = st.selectbox("Con che frequenza usi strumenti di IA generativa (es. ChatGPT)?",
-                                ["Seleziona", "Mai usati", "Raramente", "Occasionalmente", "Spesso", "Quotidianamente"])
+                                OPZ_FREQUENZA_IA, index=indice_opzione(OPZ_FREQUENZA_IA, bozza.get("frequenza_ia")))
 
     if st.button("Vai al Questionario"):
         occupazione_valida = occupazione != "Seleziona" and (occupazione != "Altro" or occupazione_altro.strip() != "")
@@ -127,6 +181,18 @@ if st.session_state.fase == 1:
             st.error("Attenzione: devi fornire il consenso sulla privacy (spuntando la casella in alto) per poter partecipare allo studio.")
         elif genere != "Seleziona" and titolo_studio != "Seleziona" and occupazione_valida and stato_civile != "Seleziona" and frequenza_ia != "Seleziona":
             occupazione_finale = f"Altro: {occupazione_altro.strip()}" if occupazione == "Altro" else occupazione
+
+            # Bozza dei campi, per ripristinarli se l'utente torna indietro
+            st.session_state.form_demo = {
+                "consenso": consenso,
+                "eta": int(eta),
+                "genere": genere,
+                "titolo_studio": titolo_studio,
+                "occupazione": occupazione,
+                "occupazione_altro": occupazione_altro,
+                "stato_civile": stato_civile,
+                "frequenza_ia": frequenza_ia,
+            }
 
             st.session_state.dati_utente.update({
                 "Eta": eta,
@@ -137,12 +203,16 @@ if st.session_state.fase == 1:
                 "Frequenza_IA": frequenza_ia
             })
 
-            st.session_state.condizione_scenario_macro = random.choice(list(SCENARI.keys()))
-            st.session_state.condizione_scenario_testo = random.choice(SCENARI[st.session_state.condizione_scenario_macro])
-            st.session_state.condizione_ia = random.choice(list(PROMPT_IA.keys()))
-            st.session_state.messaggi = [{"role": "system", "content": PROMPT_IA[st.session_state.condizione_ia]}]
+            # La condizione sperimentale viene assegnata UNA SOLA VOLTA:
+            # se l'utente torna indietro e riparte, resta la stessa condizione.
+            if "condizione_ia" not in st.session_state:
+                st.session_state.condizione_scenario_macro = random.choice(list(SCENARI.keys()))
+                st.session_state.condizione_scenario_testo = random.choice(SCENARI[st.session_state.condizione_scenario_macro])
+                st.session_state.condizione_ia = random.choice(list(PROMPT_IA.keys()))
+                st.session_state.messaggi = [{"role": "system", "content": PROMPT_IA[st.session_state.condizione_ia]}]
 
             st.session_state.fase = 2
+            st.session_state.sub_fase_pre = 1
             st.rerun()
         else:
             st.error("Per favore compila tutti i campi obbligatori.")
@@ -157,6 +227,7 @@ elif st.session_state.fase == 2:
         st.progress(0.33)
         st.success("🚀 **Iniziamo!** Prima tappa del tuo percorso. Rispondi d'istinto.")
 
+        salvate = st.session_state.pre_parte1
         risposte_f1 = []
         tutte_compilate_1 = True
 
@@ -173,7 +244,7 @@ elif st.session_state.fase == 2:
         ]
         for i, q in enumerate(domande_b1):
             st.write(q)
-            r = st.radio(f"b1_{i}", [1, 2, 3, 4, 5], index=None, horizontal=True, label_visibility="collapsed")
+            r = radio_con_bozza(f"b1_{i}", [1, 2, 3, 4, 5], salvate, len(risposte_f1))
             risposte_f1.append(r)
             if r is None: tutte_compilate_1 = False
         st.markdown("---")
@@ -189,7 +260,7 @@ elif st.session_state.fase == 2:
         ]
         for i, q in enumerate(domande_b2):
             st.write(q)
-            r = st.radio(f"b2_{i}", [1, 2, 3, 4, 5], index=None, horizontal=True, label_visibility="collapsed")
+            r = radio_con_bozza(f"b2_{i}", [1, 2, 3, 4, 5], salvate, len(risposte_f1))
             risposte_f1.append(r)
             if r is None: tutte_compilate_1 = False
         st.markdown("---")
@@ -203,12 +274,21 @@ elif st.session_state.fase == 2:
         opzioni_b3 = ["Mai", "Raramente", "Qualche volta", "Spesso"]
         for i, q in enumerate(domande_b3):
             st.write(q)
-            r = st.radio(f"b3_{i}", opzioni_b3, index=None, horizontal=True, label_visibility="collapsed")
+            r = radio_con_bozza(f"b3_{i}", opzioni_b3, salvate, len(risposte_f1))
             risposte_f1.append(r)
             if r is None: tutte_compilate_1 = False
         st.markdown("---")
 
-        if st.button("Avanti ➡️"):
+        col_indietro, col_avanti = st.columns(2)
+        with col_indietro:
+            if st.button("⬅️ Indietro", key="indietro_pre_1", use_container_width=True):
+                st.session_state.pre_parte1 = risposte_f1
+                st.session_state.fase = 1
+                st.rerun()
+        with col_avanti:
+            avanti = st.button("Avanti ➡️", key="avanti_pre_1", use_container_width=True)
+
+        if avanti:
             if not tutte_compilate_1:
                 st.error("Per favore, rispondi a tutte le domande per continuare.")
             else:
@@ -220,6 +300,7 @@ elif st.session_state.fase == 2:
         st.progress(0.66)
         st.success("💪 **Ottimo lavoro!** Sei già a metà strada.")
 
+        salvate = st.session_state.pre_parte2
         risposte_f2 = []
         tutte_compilate_2 = True
 
@@ -233,7 +314,7 @@ elif st.session_state.fase == 2:
         ]
         for i, q in enumerate(domande_b4):
             st.write(q)
-            r = st.radio(f"b4_{i}", [1, 2, 3, 4, 5, 6, 7], index=None, horizontal=True, label_visibility="collapsed")
+            r = radio_con_bozza(f"b4_{i}", [1, 2, 3, 4, 5, 6, 7], salvate, len(risposte_f2))
             risposte_f2.append(r)
             if r is None: tutte_compilate_2 = False
         st.markdown("---")
@@ -246,12 +327,21 @@ elif st.session_state.fase == 2:
         ]
         for i, q in enumerate(domande_b5):
             st.write(q)
-            r = st.radio(f"b5_{i}", [1, 2, 3, 4, 5, 6, 7], index=None, horizontal=True, label_visibility="collapsed")
+            r = radio_con_bozza(f"b5_{i}", [1, 2, 3, 4, 5, 6, 7], salvate, len(risposte_f2))
             risposte_f2.append(r)
             if r is None: tutte_compilate_2 = False
         st.markdown("---")
 
-        if st.button("Avanti ➡️"):
+        col_indietro, col_avanti = st.columns(2)
+        with col_indietro:
+            if st.button("⬅️ Indietro", key="indietro_pre_2", use_container_width=True):
+                st.session_state.pre_parte2 = risposte_f2
+                st.session_state.sub_fase_pre = 1
+                st.rerun()
+        with col_avanti:
+            avanti = st.button("Avanti ➡️", key="avanti_pre_2", use_container_width=True)
+
+        if avanti:
             if not tutte_compilate_2:
                 st.error("Per favore, rispondi a tutte le domande per continuare.")
             else:
@@ -263,6 +353,8 @@ elif st.session_state.fase == 2:
         st.progress(1.0)
         st.success("🎉 **Ci siamo quasi!** Ultima sezione prima di conoscere la tua intelligenza artificiale.")
 
+        # Le risposte di questa pagina vengono salvate in una lista a parte
+        salvate = st.session_state.get("pre_parte3", [])
         risposte_f3 = []
         tutte_compilate_3 = True
 
@@ -278,7 +370,7 @@ elif st.session_state.fase == 2:
         ]
         for i, q in enumerate(domande_b6):
             st.write(q)
-            r = st.radio(f"b6_{i}", [1, 2, 3, 4, 5, 6, 7], index=None, horizontal=True, label_visibility="collapsed")
+            r = radio_con_bozza(f"b6_{i}", [1, 2, 3, 4, 5, 6, 7], salvate, len(risposte_f3))
             risposte_f3.append(r)
             if r is None: tutte_compilate_3 = False
         st.markdown("---")
@@ -293,15 +385,25 @@ elif st.session_state.fase == 2:
         ]
         for i, q in enumerate(domande_b7):
             st.write(q)
-            r = st.radio(f"b7_{i}", [1, 2, 3, 4, 5], index=None, horizontal=True, label_visibility="collapsed")
+            r = radio_con_bozza(f"b7_{i}", [1, 2, 3, 4, 5], salvate, len(risposte_f3))
             risposte_f3.append(r)
             if r is None: tutte_compilate_3 = False
         st.markdown("---")
 
-        if st.button("Procedi allo Scenario 🎯"):
+        col_indietro, col_avanti = st.columns(2)
+        with col_indietro:
+            if st.button("⬅️ Indietro", key="indietro_pre_3", use_container_width=True):
+                st.session_state.pre_parte3 = risposte_f3
+                st.session_state.sub_fase_pre = 2
+                st.rerun()
+        with col_avanti:
+            avanti = st.button("Procedi allo Scenario 🎯", key="avanti_pre_3", use_container_width=True)
+
+        if avanti:
             if not tutte_compilate_3:
                 st.error("Per favore, rispondi a tutte le domande prima di procedere.")
             else:
+                st.session_state.pre_parte3 = risposte_f3
                 st.session_state.dati_pre_test = st.session_state.pre_parte1 + st.session_state.pre_parte2 + risposte_f3
                 st.session_state.fase = 3
                 st.rerun()
@@ -312,6 +414,9 @@ elif st.session_state.fase == 2:
 elif st.session_state.fase == 3:
     st.title("Il tuo Scenario")
 
+    # Avviso sui dati sensibili: ora è all'inizio della pagina
+    st.info("ℹ️ **Nota:** Ricorda che stai per interagire con un sistema di intelligenza artificiale; pertanto, non condividere dati sensibili o personali durante la conversazione.")
+
     st.markdown("""
     *Prenditi qualche secondo per immaginare la situazione qui descritta, come se ti stesse accadendo ora. 
     Immagina precisamente dove ti trovi, cosa sta succedendo e come potresti sentirti nel momento descritto di seguito. 
@@ -320,16 +425,21 @@ elif st.session_state.fase == 3:
 
     st.info(st.session_state.condizione_scenario_testo)
 
-    st.info("ℹ️ **Nota:** Ricorda che stai per interagire con un sistema di intelligenza artificiale; pertanto, non condividere dati sensibili o personali durante la conversazione.")
-
     st.write("**Concentrati sulla situazione immaginata per 30 secondi, poi, quando sei pronto/a, premi qui per iniziare l’interazione con il sistema di intelligenza artificiale.**")
 
-    if st.button("Inizia l'interazione"):
-        st.session_state.inizio_chat = time.time()
-        st.session_state.timestamp_ultima_risposta = time.time()
-        st.session_state.chat_chiusa = False
-        st.session_state.fase = 4
-        st.rerun()
+    col_indietro, col_avanti = st.columns(2)
+    with col_indietro:
+        if st.button("⬅️ Indietro", key="indietro_scenario", use_container_width=True):
+            st.session_state.fase = 2
+            st.session_state.sub_fase_pre = 3
+            st.rerun()
+    with col_avanti:
+        if st.button("Inizia l'interazione", key="avanti_scenario", use_container_width=True):
+            st.session_state.inizio_chat = time.time()
+            st.session_state.timestamp_ultima_risposta = time.time()
+            st.session_state.chat_chiusa = False
+            st.session_state.fase = 4
+            st.rerun()
 
 # ==========================================
 # FASE 4: CHAT (L'INTERAZIONE)
@@ -344,7 +454,7 @@ elif st.session_state.fase == 4:
 
     # Frammento che si riesegue da solo ogni secondo, anche se l'utente non fa nulla.
     # Senza questo, Streamlit ricontrolla i timer solo quando l'utente clicca o scrive.
-    # Ora è mostrato nella pagina principale (sopra la chat), così è ben visibile anche da cellulare.
+    # È mostrato nella pagina principale (sopra la chat), così è ben visibile anche da cellulare.
     @st.fragment(run_every=1)
     def pannello_timer():
         ora = time.time()
