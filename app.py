@@ -78,6 +78,7 @@ VALORI_INIZIALI = {
     "inizio_chat": None,
     "timestamp_ultima_risposta": None,
     "chat_chiusa": False,
+    "durata_interazione": None,   # secondi trascorsi a interagire con l'IA
 }
 for chiave, valore in VALORI_INIZIALI.items():
     if chiave not in st.session_state:
@@ -106,6 +107,13 @@ def scroll_in_alto(token):
     </script>
     """
     components.html("<!-- " + str(token) + " -->" + js, height=0)
+
+
+def registra_durata_interazione():
+    """Salva in secondi quanto l'utente è rimasto a interagire con l'IA (massimo DURATA_MAX)."""
+    if st.session_state.inizio_chat is not None:
+        trascorso = time.time() - st.session_state.inizio_chat
+        st.session_state.durata_interazione = round(min(trascorso, DURATA_MAX), 1)
 
 
 def indice_opzione(opzioni, valore):
@@ -466,6 +474,7 @@ elif st.session_state.fase == 4:
                 st.rerun(scope="app")  # ricarica tutta la pagina per nascondere il campo di testo
             st.warning("⏱️ Tempo massimo raggiunto (4 minuti).")
             if st.button("➡️ Prosegui con il questionario finale", key="btn_timeout", use_container_width=True):
+                registra_durata_interazione()
                 st.session_state.fase = 5
                 st.rerun(scope="app")
             return
@@ -475,6 +484,7 @@ elif st.session_state.fase == 4:
             if ora - st.session_state.timestamp_ultima_risposta >= SOGLIA_SILENZIO:
                 st.info("💡 Non sai più cosa dire? Puoi concludere l'interazione quando desideri.")
                 if st.button("➡️ Concludi e vai al questionario", key="btn_concludi", use_container_width=True):
+                    registra_durata_interazione()
                     st.session_state.fase = 5
                     st.rerun(scope="app")
 
@@ -655,6 +665,7 @@ elif st.session_state.fase == 5:
                 nuova_riga.extend(st.session_state.dati_pre_test)
                 nuova_riga.extend(risposte_post)
                 nuova_riga.append(str(st.session_state.messaggi))
+                nuova_riga.append(st.session_state.durata_interazione)  # durata in secondi (nuova ultima colonna)
 
                 wks.append_row(nuova_riga)
 
